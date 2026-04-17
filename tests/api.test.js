@@ -50,8 +50,4 @@ describe('API Tests', () => {
             .send({ name: 'No Role' });
         expect(res.statusCode).toBe(400);
     });
-test('THIS WILL FAIL - simulating broken code', async () => {
-    expect(1).toBe(2);   // obviously wrong
-});
-
 });
