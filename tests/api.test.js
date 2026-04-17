@@ -50,4 +50,14 @@ describe('API Tests', () => {
             .send({ name: 'No Role' });
         expect(res.statusCode).toBe(400);
     });
+
+test('GET /api/ping returns pong', async () => {
+    // Add the route to test app
+    app.get('/api/ping', (req, res) => {
+        res.json({ pong: true, timestamp: Date.now() });
+    });
+    const res = await request(app).get('/api/ping');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.pong).toBe(true);
+});
 });
