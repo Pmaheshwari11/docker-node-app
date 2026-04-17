@@ -1,0 +1,60 @@
+require('dotenv').config();
+const express   = require('express');
+const mongoose  = require('mongoose');
+const app       = express();
+const PORT      = process.env.PORT      || 3000;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/myapp';
+
+// ── Middleware ────────────────────────────────
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+});
+
+// ── Routes ────────────────────────────────────
+const apiRoutes = require('./routes');
+app.use('/api', apiRoutes);
+
+app.use((req, res) => {
+    res.status(404).json({ error: `Route ${req.path} not found` });
+});
+
+// ── MongoDB Connection ────────────────────────
+async function connectDB() {
+    let retries = 5;
+
+    while (retries > 0) {
+        try {
+            await mongoose.connect(MONGO_URI);
+            console.log('✅ MongoDB connected:', MONGO_URI);
+            break;
+        } catch (err) {
+            retries--;
+            console.log(`⚠️  MongoDB connection failed. Retries left: ${retries}`);
+            if (retries === 0) {
+                console.error('❌ Could not connect to MongoDB. Exiting.');
+                process.exit(1);
+            }
+            // Wait 3 seconds before retrying
+            await new Promise(r => setTimeout(r, 3000));
+        }
+    }
+}
+
+// ── Start ─────────────────────────────────────
+async function start() {
+    await connectDB();
+
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log('================================');
+        console.log(`  ${process.env.APP_NAME}`);
+        console.log(`  Port: ${PORT}`);
+        console.log(`  Env:  ${process.env.NODE_ENV}`);
+        console.log('================================');
+    });
+}
+
+start();

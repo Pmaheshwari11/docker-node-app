@@ -1,0 +1,15 @@
+nodejs:
+    image: your-dockerhub-username/docker-node-app:v1.0.0  # ← pull from Hub
+    # build:                     ← comment out or remove
+    #   context: .
+    #   dockerfile: Dockerfile
+    container_name: compose_nodejs
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - nodeapp-data:/app/data
+    networks:
+      - app-network
+    depends_on:
+      - mongodb

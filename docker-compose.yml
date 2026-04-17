@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+
+  # ── Service 1: MongoDB ──────────────────────
+  mongodb:
+    image: mongo:7.0
+    container_name: compose_mongodb
+    restart: unless-stopped        # restart if it crashes
+    volumes:
+      - mongodata:/data/db         # persist database files
+    networks:
+      - app-network
+    # NOT exposing port 27017 to host — internal only
+    # This is security: MongoDB unreachable from outside
+
+  # ── Service 2: Node.js App ──────────────────
+  nodejs:
+    image: pmaheshwari11/docker-node-app:v1.0.0
+    container_name: compose_nodejs
+    restart: unless-stopped
+    env_file:
+      - .env                       # inject secrets at runtime
+    volumes:
+      - nodeapp-data:/app/data     # persist app data
+    networks:
+      - app-network
+    depends_on:
+      - mongodb                    # start mongodb first
+    # NOT exposing port 3000 to host
+    # Only Nginx should talk to Node directly
+
+  # ── Service 3: Nginx ────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: compose_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"                    # ONLY Nginx is exposed to host
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro  # ro = read-only
+    networks:
+      - app-network
+    depends_on:
+      - nodejs                     # start nodejs first
+
+# ── Networks ────────────────────────────────────
+networks:
+  app-network:
+    driver: bridge
+
+# ── Volumes ─────────────────────────────────────
+volumes:
+  mongodata:
+  nodeapp-data:
+

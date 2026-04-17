@@ -1,0 +1,101 @@
+const express = require('express');
+const router = express.Router();
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+const DATA_FILE = path.join('/app/data', 'users.json');
+
+// Health check route
+router.get('/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: `${Math.floor(process.uptime())}s`,
+        environment: process.env.NODE_ENV,
+        container: {
+            hostname: os.hostname(),    // Inside Docker, this = container ID
+            platform: os.platform(),
+            memory: {
+                total: `${Math.round(os.totalmem() / 1024 / 1024)}MB`,
+                free: `${Math.round(os.freemem() / 1024 / 1024)}MB`
+            }
+        }
+    });
+});
+
+
+
+// API info route
+router.get('/', (req, res) => {
+    res.json({
+        app: process.env.APP_NAME,
+        version: '1.0.0',
+        message: 'Node.js API running inside Docker!',
+        routes: [
+            'GET /api/health',
+            'GET /api/users',
+            'POST /api/users',
+        ]
+    });
+});
+
+// Helper — load users from disk or use defaults
+function loadUsers() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            const data = fs.readFileSync(DATA_FILE, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (err) {
+        console.log('[WARN] Could not load users file, using defaults');
+    }
+    return [
+        { id: 1, name: 'Parth Dudani', role: 'DevOps Engineer' },
+        { id: 2, name: 'Alice',        role: 'Backend Engineer' },
+    ];
+}
+
+// Helper — save users to disk
+function saveUsers(users) {
+    try {
+        fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
+        fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2));
+    } catch (err) {
+        console.log('[ERROR] Could not save users:', err.message);
+    }
+}
+
+ persistent storage
+let users = loadUsers();
+
+
+router.get('/users', (req, res) => {
+    res.json({
+        count: users.length,
+        users
+    });
+});
+
+router.post('/users', (req, res) => {
+    const { name, role } = req.body;
+
+    if (!name || !role) {
+        return res.status(400).json({
+            error: 'name and role are required'
+        });
+    }
+
+    const newUser = {
+        id: users.length + 1,
+        name,
+        role
+    };
+
+    users.push(newUser);
+    saveUsers(users);         // persist to volume
+
+    res.status(201).json(newUser);
+});
+module.exports = router;
+
+// cache test
