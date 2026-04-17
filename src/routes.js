@@ -77,4 +77,12 @@ router.delete('/users/:id', async (req, res) => {
     }
 });
 
+// Ping endpoint — useful for load balancer health checks
+router.get('/ping', (req, res) => {
+    res.json({
+        pong: true,
+        timestamp: Date.now()
+    });
+});
+
 module.exports = router;
