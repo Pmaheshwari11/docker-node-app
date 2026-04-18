@@ -85,4 +85,14 @@ router.get('/ping', (req, res) => {
     });
 });
 
+router.get('/', (req, res) => {
+    res.json({
+        app:     process.env.APP_NAME,
+        version: '3.0.0',                    // bump version
+        message: 'Deployed automatically via GitHub Actions CI/CD! 🚀',
+        deployedAt: new Date().toISOString(), // add timestamp
+        server: os.hostname()
+    });
+});
+
 module.exports = router;
